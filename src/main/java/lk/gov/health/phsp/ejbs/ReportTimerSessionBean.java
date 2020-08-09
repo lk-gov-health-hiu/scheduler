@@ -127,7 +127,7 @@ public class ReportTimerSessionBean {
     @TransactionAttribute(REQUIRES_NEW)
     public void runIndividualQuerys() {
         System.out.println("runIndividualQuerys at " + new Date());
-        int singleProcessCount = 200;
+        int singleProcessCount = 10000;
         List<IndividualQueryResult> cqrs;
         String j;
         j = "select r "
@@ -149,8 +149,8 @@ public class ReportTimerSessionBean {
             persistent = false)
     @TransactionAttribute(REQUIRES_NEW)
     public void createIndividualResultsForConsolidatedResults() {
-        System.out.println("createIndividualResultsForConsolidatedResults at " + new Date());
-        int singleProcessCount = 200;
+//        System.out.println("createIndividualResultsForConsolidatedResults at " + new Date());
+        int singleProcessCount = 2000;
         List<ConsolidatedQueryResult> cqrs;
         String j;
         j = "select r "
@@ -182,8 +182,8 @@ public class ReportTimerSessionBean {
             persistent = false)
     @TransactionAttribute(REQUIRES_NEW)
     public void createConsolidatedResultsFromIndividualResults() {
-        System.out.println("createConsolidatedResultsFromIndividualResults at " + new Date());
-        int singleProcessCount = 200;
+//        System.out.println("createConsolidatedResultsFromIndividualResults at " + new Date());
+        int singleProcessCount = 2000;
         List<ConsolidatedQueryResult> cqrs;
         String j;
         j = "select r "
@@ -212,7 +212,7 @@ public class ReportTimerSessionBean {
     }
 
     public void consolideIndividualResults(ConsolidatedQueryResult cr, List<Long> encIds) {
-        System.out.println("consolideIndividualResults");
+//        System.out.println("consolideIndividualResults");
         String j;
         Map m;
         Long count = 0l;
@@ -227,21 +227,21 @@ public class ReportTimerSessionBean {
 //            System.out.println("j = " + j);
 //            System.out.println("m = " + m);
             IndividualQueryResult r = getIndividualQueryResultFacade().findFirstByJpql(j, m);
-            System.out.println("r = " + r);
+//            System.out.println("r = " + r);
             if (r != null) {
                 if (r.getIncluded()) {
                     count++;
                 }
             }
         }
-        System.out.println("count = " + count);
+//        System.out.println("count = " + count);
         cr.setLongValue(count);
         getConsolidatedQueryResultFacade().edit(cr);
     }
 
     private void submitToConsilidate() {
-        System.out.println("submit To Consilidate");
-        int processingCount = 2;
+//        System.out.println("submit To Consilidate");
+        int processingCount = 20;
         processingReport = true;
         String j;
         Map m = new HashMap();
@@ -282,8 +282,8 @@ public class ReportTimerSessionBean {
     }
 
     private void checkCompletenessAfterConsolidation() {
-        System.out.println("checkCompletenessAfterConsolidation");
-        int processingCount = 2;
+//        System.out.println("checkCompletenessAfterConsolidation");
+        int processingCount = 20;
         processingReport = true;
         String j;
         Map m = new HashMap();
@@ -321,8 +321,8 @@ public class ReportTimerSessionBean {
     }
 
     private void generateFileAfterConsolidation() {
-        System.out.println("generateFileAfterConsolidation");
-        int processCount = 2;
+//        System.out.println("generateFileAfterConsolidation");
+        int processCount = 20;
         processingReport = true;
         String j;
         Map m = new HashMap();
@@ -521,7 +521,7 @@ public class ReportTimerSessionBean {
     }
 
     public boolean checkConsolidatedQueryResult(StoredQueryResult sqr, QueryComponent qc) {
-        System.out.println("checkConsolidatedQueryResult");
+//        System.out.println("checkConsolidatedQueryResult");
         String j;
         Map m = new HashMap();
         j = "select r "
@@ -541,15 +541,15 @@ public class ReportTimerSessionBean {
             j += " and r.area=:area ";
             m.put("area", sqr.getArea());
         }
-        System.out.println("m = " + m);
-        System.out.println("j = " + j);
+//        System.out.println("m = " + m);
+//        System.out.println("j = " + j);
         ConsolidatedQueryResult r = getConsolidatedQueryResultFacade().findFirstByJpql(j, m);
-        System.out.println("r = " + r);
+//        System.out.println("r = " + r);
         if (r == null) {
             return false;
         }
         boolean resultFound = r.getLongValue() != null;
-        System.out.println("resultFound = " + resultFound);
+//        System.out.println("resultFound = " + resultFound);
         return resultFound;
     }
 
@@ -587,11 +587,11 @@ public class ReportTimerSessionBean {
     public Long createIndividualQueryResultsForConsolidateQueryResult(Long encounterId, String qryCode) {
 
         if (qryCode == null) {
-            System.out.println("No qryCode");
+//            System.out.println("No qryCode");
             return 0l;
         }
         if (encounterId == null) {
-            System.out.println("No encounter id");
+//            System.out.println("No encounter id");
             return 0l;
         }
 
