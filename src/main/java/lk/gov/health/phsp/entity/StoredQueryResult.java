@@ -37,12 +37,19 @@ import javax.persistence.Temporal;
 import javax.persistence.Transient;
 import lk.gov.health.phsp.bean.CommonController;
 import lk.gov.health.phsp.enums.TimePeriodType;
+import org.eclipse.persistence.annotations.Cache;
+import org.eclipse.persistence.annotations.CacheType;
 
 /**
  *
  * @author buddhika
  */
 @Entity
+@Cache(
+  type=CacheType.NONE, // Cache nothing
+  expiry=0,
+  alwaysRefresh=true
+)
 public class StoredQueryResult implements Serializable {
 
     private static final long serialVersionUID = 1L;

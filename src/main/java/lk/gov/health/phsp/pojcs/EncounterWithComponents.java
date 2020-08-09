@@ -25,7 +25,6 @@ package lk.gov.health.phsp.pojcs;
 
 import java.util.ArrayList;
 import java.util.List;
-import lk.gov.health.phsp.entity.ClientEncounterComponentItem;
 import lk.gov.health.phsp.entity.Encounter;
 
 /**
@@ -33,25 +32,25 @@ import lk.gov.health.phsp.entity.Encounter;
  * @author buddhika
  */
 public class EncounterWithComponents {
-    private Encounter encounter;
-    private List<ClientEncounterComponentItem> components;
+    private Long encounterId;
+    private List<ClientEncounterComponentBasicDataToQuery> components;
 
-    public Encounter getEncounter() {
-        return encounter;
+    public Long getEncounterId() {
+        return encounterId;
     }
 
-    public void setEncounter(Encounter encounter) {
-        this.encounter = encounter;
+    public void setEncounterId(Long encounterId) {
+        this.encounterId = encounterId;
     }
 
-    public List<ClientEncounterComponentItem> getComponents() {
+    public List<ClientEncounterComponentBasicDataToQuery> getComponents() {
         if(components==null){
             components = new ArrayList<>();
         }
         return components;
     }
 
-    public void setComponents(List<ClientEncounterComponentItem> components) {
+    public void setComponents(List<ClientEncounterComponentBasicDataToQuery> components) {
         this.components = components;
     }
     
