@@ -62,8 +62,40 @@ public class ClientEncounterComponentBasicDataToQuery {
         this.itemValueCode = itemValueCode;
     }
     
+    public ClientEncounterComponentBasicDataToQuery(String name, String code, String shortTextValue, Integer integerNumberValue, Long longNumberValue, Double realNumberValue, Boolean booleanValue, Date dateValue, String itemValueCode) {
+        this.name = name;
+        this.code = code;
+        this.shortTextValue = shortTextValue;
+        this.integerNumberValue = integerNumberValue;
+        this.longNumberValue = longNumberValue;
+        this.realNumberValue = realNumberValue;
+        this.booleanValue = booleanValue;
+        this.dateValue = dateValue;
+        this.itemValueCode = itemValueCode;
+    }
     
+    public ClientEncounterComponentBasicDataToQuery(String name, String code, String itemCode, String shortTextValue, Integer integerNumberValue, Long longNumberValue, Double realNumberValue, Boolean booleanValue, Date dateValue) {
+        this.name = name;
+        this.code = code;
+        this.itemCode = itemCode;
+        this.shortTextValue = shortTextValue;
+        this.integerNumberValue = integerNumberValue;
+        this.longNumberValue = longNumberValue;
+        this.realNumberValue = realNumberValue;
+        this.booleanValue = booleanValue;
+        this.dateValue = dateValue;
+    }
     
+    public ClientEncounterComponentBasicDataToQuery(String name, String code, String shortTextValue, Integer integerNumberValue, Long longNumberValue, Double realNumberValue, Boolean booleanValue, Date dateValue) {
+        this.name = name;
+        this.code = code;
+        this.shortTextValue = shortTextValue;
+        this.integerNumberValue = integerNumberValue;
+        this.longNumberValue = longNumberValue;
+        this.realNumberValue = realNumberValue;
+        this.booleanValue = booleanValue;
+        this.dateValue = dateValue;
+    }
     
     public String getName() {
         return name;
