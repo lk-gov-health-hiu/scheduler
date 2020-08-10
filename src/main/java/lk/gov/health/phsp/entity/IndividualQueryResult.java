@@ -44,9 +44,10 @@ public class IndividualQueryResult implements Serializable {
 
     @Column(length = 180)
     private String queryComponentCode;
-
+    
     private Long clientId;
     private Long encounterId;
+    private Long queryComponentId;
 
     private Boolean included;
 
@@ -83,6 +84,9 @@ public class IndividualQueryResult implements Serializable {
         return "lk.gov.health.phsp.entity.QueryResult[ id=" + id + " ]";
     }
 
+    
+    
+    
     public String getQueryComponentCode() {
         return queryComponentCode;
     }
@@ -113,6 +117,14 @@ public class IndividualQueryResult implements Serializable {
 
     public void setIncluded(Boolean included) {
         this.included = included;
+    }
+
+    public Long getQueryComponentId() {
+        return queryComponentId;
+    }
+
+    public void setQueryComponentId(Long queryComponentId) {
+        this.queryComponentId = queryComponentId;
     }
 
 }

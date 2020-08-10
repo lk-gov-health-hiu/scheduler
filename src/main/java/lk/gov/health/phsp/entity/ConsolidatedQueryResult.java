@@ -33,7 +33,6 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.ManyToOne;
 import javax.persistence.Temporal;
-import lk.gov.health.phsp.enums.TimePeriodType;
 
 /**
  *
@@ -55,6 +54,7 @@ public class ConsolidatedQueryResult implements Serializable {
 
     @Column(length = 180)
     private String queryComponentCode;
+    private Long queryComponentId;
 
     @Temporal(javax.persistence.TemporalType.DATE)
     private Date resultFrom;
@@ -71,8 +71,6 @@ public class ConsolidatedQueryResult implements Serializable {
     public void setId(Long id) {
         this.id = id;
     }
-    
-    
 
     @Override
     public int hashCode() {
@@ -153,6 +151,14 @@ public class ConsolidatedQueryResult implements Serializable {
 
     public void setLastIndividualQueryResultId(Long lastIndividualQueryResultId) {
         this.lastIndividualQueryResultId = lastIndividualQueryResultId;
+    }
+
+    public Long getQueryComponentId() {
+        return queryComponentId;
+    }
+
+    public void setQueryComponentId(Long queryComponentId) {
+        this.queryComponentId = queryComponentId;
     }
 
 }

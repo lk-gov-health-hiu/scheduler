@@ -1,5 +1,5 @@
-SELECT `ITEM_ID`, count(*) FROM 
-component
-where `DTYPE`="ClientEncounterComponentItem"
-and `REALNUMBERVALUE` is not null
-group by `ITEM_ID`;
+SELECT `NAME`, code 
+from component
+where `DTYPE`="QueryComponent"
+and `ITEM_ID` is null
+order by id desc;
