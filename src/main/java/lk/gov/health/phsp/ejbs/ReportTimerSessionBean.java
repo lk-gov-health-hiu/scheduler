@@ -719,17 +719,17 @@ public class ReportTimerSessionBean {
         getIndividualQueryResultFacade().edit(r);
     }
 
-    public void calculateIndividualQueryResultAlt(IndividualQueryResult r) {
-        List<ClientEncounterComponentBasicDataToQuery> encomps
-                = findClientEncounterComponentItems(r.getEncounterId(), r.getQueryComponentId());
-        List<QueryComponent> criteria = findCriteriaForQueryComponent(r.getQueryComponentCode());
-        if (criteria == null || criteria.isEmpty()) {
-            r.setIncluded(true);
-        } else {
-            r.setIncluded(findMatch(encomps, criteria));
-        }
-        getIndividualQueryResultFacade().edit(r);
-    }
+//    private void calculateIndividualQueryResultAlt(IndividualQueryResult r) {
+//        List<ClientEncounterComponentBasicDataToQuery> encomps
+//                = findClientEncounterComponentItems(r.getEncounterId(), r.getQueryComponentId());
+//        List<QueryComponent> criteria = findCriteriaForQueryComponent(r.getQueryComponentCode());
+//        if (criteria == null || criteria.isEmpty()) {
+//            r.setIncluded(true);
+//        } else {
+//            r.setIncluded(findMatch(encomps, criteria));
+//        }
+//        getIndividualQueryResultFacade().edit(r);
+//    }
 
     private Boolean findMatch(List<ClientEncounterComponentBasicDataToQuery> is, List<QueryComponent> qrys) {
         boolean suitableForInclusion = true;
@@ -759,6 +759,12 @@ public class ReportTimerSessionBean {
             if (!componentFound) {
                 if (logActivity) {
                     System.out.println("Client component Item NOT found for " + q.getItem().getCode());
+                    for(ClientEncounterComponentBasicDataToQuery ci: is){
+                        System.out.println("Client Component Item Item Code = " + ci.getItemCode());
+                    }
+                    for(QueryComponent qc: qrys){
+                        System.out.println("qc Item Code " + qc.getItem().getCode());
+                    }
                 }
             }
             if (!thisMatchOk) {
@@ -1084,63 +1090,63 @@ public class ReportTimerSessionBean {
         return null;
     }
 
-    private Long findReplaceblesInCalculationString(String text, List<EncounterWithComponents> ens) {
-        String str;
-        Long l = 0l;
-
-        if (ens == null) {
-            return l;
-        }
-        if (ens.isEmpty()) {
-            l = 0l;
-            return l;
-        }
-
-        String patternStart = "#{";
-        String patternEnd = "}";
-        String regexString = Pattern.quote(patternStart) + "(.*?)" + Pattern.quote(patternEnd);
-
-        Pattern p = Pattern.compile(regexString);
-
-        Matcher m = p.matcher(text);
-
-        while (m.find()) {
-            String block = m.group(1);
-            str = block;
-            QueryComponent qc = findQueryComponentByCode(block);
-            if (qc == null) {
-                str += " not qc";
-                l = null;
-//                if(logActivity) System.out.println("l = " + l);
-                return l;
-
-            } else {
-//                if(logActivity) System.out.println("qc = " + qc.getName());
-                if (qc.getQueryType() == QueryType.Encounter_Count) {
-                    List<QueryComponent> criteria = findCriteriaForQueryComponent(qc);
-
-                    if (criteria == null || criteria.isEmpty()) {
-                        l = Long.valueOf(ens.size());
-                        str += " " + l;
-                        return l;
-                    } else {
-                        l = findMatchingCount(ens, criteria);
-                        str += criteria + " " + l;
-                        return l;
-                    }
-
-                } else {
-//                    str += " not encounter count";
-                    l = null;
-                    return l;
-                }
-            }
-
-        }
-
-        return l;
-
-    }
+//    private Long findReplaceblesInCalculationString(String text, List<EncounterWithComponents> ens) {
+//        String str;
+//        Long l = 0l;
+//
+//        if (ens == null) {
+//            return l;
+//        }
+//        if (ens.isEmpty()) {
+//            l = 0l;
+//            return l;
+//        }
+//
+//        String patternStart = "#{";
+//        String patternEnd = "}";
+//        String regexString = Pattern.quote(patternStart) + "(.*?)" + Pattern.quote(patternEnd);
+//
+//        Pattern p = Pattern.compile(regexString);
+//
+//        Matcher m = p.matcher(text);
+//
+//        while (m.find()) {
+//            String block = m.group(1);
+//            str = block;
+//            QueryComponent qc = findQueryComponentByCode(block);
+//            if (qc == null) {
+//                str += " not qc";
+//                l = null;
+////                if(logActivity) System.out.println("l = " + l);
+//                return l;
+//
+//            } else {
+////                if(logActivity) System.out.println("qc = " + qc.getName());
+//                if (qc.getQueryType() == QueryType.Encounter_Count) {
+//                    List<QueryComponent> criteria = findCriteriaForQueryComponent(qc);
+//
+//                    if (criteria == null || criteria.isEmpty()) {
+//                        l = Long.valueOf(ens.size());
+//                        str += " " + l;
+//                        return l;
+//                    } else {
+//                        l = findMatchingCount(ens, criteria);
+//                        str += criteria + " " + l;
+//                        return l;
+//                    }
+//
+//                } else {
+////                    str += " not encounter count";
+//                    l = null;
+//                    return l;
+//                }
+//            }
+//
+//        }
+//
+//        return l;
+//
+//    }
 
     private List<Long> findEncounterIds(Date fromDate, Date toDate, Institution institution) {
         String j = "select e.id "
@@ -1164,52 +1170,52 @@ public class ReportTimerSessionBean {
         return encs;
     }
 
-    private Long findMatchingCount(List<EncounterWithComponents> encs, List<QueryComponent> qrys) {
-        Long c = 0l;
-        Long encounterCount = 1l;
-        for (EncounterWithComponents e : encs) {
-            List<ClientEncounterComponentBasicDataToQuery> is = e.getComponents();
-            boolean suitableForInclusion = true;
-            for (QueryComponent q : qrys) {
-
-                if (q.getItem() == null || q.getItem().getCode() == null) {
-                    continue;
-                } else {
-//                    if(logActivity) System.out.println("QUERY Item Code is NULL");
-                }
-
-                boolean thisMatchOk = false;
-                boolean componentFound = false;
-                for (ClientEncounterComponentBasicDataToQuery i : is) {
-
-                    if (i.getItemCode() == null) {
-                        continue;
-                    }
-
-                    if (i.getItemCode().trim().equalsIgnoreCase(q.getItem().getCode().trim())) {
-                        componentFound = true;
-                        if (matchQuery(q, i)) {
-                            thisMatchOk = true;
-//                            if(logActivity) System.out.println("i.getItemCode() = " + i.getItemCode());
-//                            if(logActivity) System.out.println("q.getItem().getCode() = " + q.getItem().getCode());
-//                            if(logActivity) System.out.println("thisMatchOk = " + thisMatchOk);
-                        }
-                    }
-                }
-                if (!componentFound) {
-//                    if(logActivity) System.out.println("Client component Item NOT found for " + q.getItem().getCode());
-                }
-                if (!thisMatchOk) {
-                    suitableForInclusion = false;
-                }
-            }
-            if (suitableForInclusion) {
-                c++;
-            }
-            encounterCount++;
-        }
-        return c;
-    }
+//    private Long findMatchingCount(List<EncounterWithComponents> encs, List<QueryComponent> qrys) {
+//        Long c = 0l;
+//        Long encounterCount = 1l;
+//        for (EncounterWithComponents e : encs) {
+//            List<ClientEncounterComponentBasicDataToQuery> is = e.getComponents();
+//            boolean suitableForInclusion = true;
+//            for (QueryComponent q : qrys) {
+//
+//                if (q.getItem() == null || q.getItem().getCode() == null) {
+//                    continue;
+//                } else {
+////                    if(logActivity) System.out.println("QUERY Item Code is NULL");
+//                }
+//
+//                boolean thisMatchOk = false;
+//                boolean componentFound = false;
+//                for (ClientEncounterComponentBasicDataToQuery i : is) {
+//
+//                    if (i.getItemCode() == null) {
+//                        continue;
+//                    }
+//
+//                    if (i.getItemCode().trim().equalsIgnoreCase(q.getItem().getCode().trim())) {
+//                        componentFound = true;
+//                        if (matchQuery(q, i)) {
+//                            thisMatchOk = true;
+////                            if(logActivity) System.out.println("i.getItemCode() = " + i.getItemCode());
+////                            if(logActivity) System.out.println("q.getItem().getCode() = " + q.getItem().getCode());
+////                            if(logActivity) System.out.println("thisMatchOk = " + thisMatchOk);
+//                        }
+//                    }
+//                }
+//                if (!componentFound) {
+////                    if(logActivity) System.out.println("Client component Item NOT found for " + q.getItem().getCode());
+//                }
+//                if (!thisMatchOk) {
+//                    suitableForInclusion = false;
+//                }
+//            }
+//            if (suitableForInclusion) {
+//                c++;
+//            }
+//            encounterCount++;
+//        }
+//        return c;
+//    }
 
     private boolean matchQuery(QueryComponent q, ClientEncounterComponentBasicDataToQuery clientValue) {
         if (clientValue == null) {
@@ -1604,12 +1610,21 @@ public class ReportTimerSessionBean {
         m = new HashMap();
         j = "select f from ClientEncounterComponentItem f "
                 + " where f.retired=false "
-                + " and f.encounter.id=:eid "
-                + " and f.item.code in :ics";
-
+                + " and f.encounter.id=:eid ";
         m.put("eid", endId);
-        m.put("ics", tqs);
+//        System.out.println("tqs = " + tqs);
+        if (tqs != null && !tqs.isEmpty()) {
+//            System.out.println("tqs.size() = " + tqs.size());
+            if (tqs.size() < 20) {
+                j += " and f.item.code in :ics";
+                m.put("ics", tqs);
+            }
+        }else{
+            if(logActivity) System.out.println("tqs = " + tqs);
+        }
 
+//        System.out.println("m = " + m);
+//        System.out.println("j = " + j);
         List<ClientEncounterComponentItem> t = getClientEncounterComponentItemFacade().findByJpql(j, m);
         if (t == null) {
             t = new ArrayList<>();
