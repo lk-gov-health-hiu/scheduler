@@ -728,7 +728,7 @@ public class ReportTimerSessionBean {
     }
 
     private boolean checkRecordCompletenessAfterConsolidation(StoredQueryResult sqr) {
-        System.out.println("checkRecordCompletenessAfterConsolidation");
+//        System.out.println("checkRecordCompletenessAfterConsolidation");
         boolean success = false;
 
         QueryComponent queryComponent = sqr.getQueryComponent();
@@ -1185,7 +1185,7 @@ public class ReportTimerSessionBean {
 
                     qInt1 = q.getIntegerNumberValue();
                     qInt2 = q.getIntegerNumberValue2();
-                    System.out.println("Query int1 = " + qInt1);
+//                    System.out.println("Query int1 = " + qInt1);
 //                    System.out.println("Query int2 = " + qInt2);
                     break;
                 case item:
@@ -1645,9 +1645,9 @@ public class ReportTimerSessionBean {
                         );
             }
 
-            System.out.println("Name = " + cbd.getName());
-            System.out.println("Code = " + cbd.getCode());
-            System.out.println("getItemCode = " + cbd.getItemCode());
+//            System.out.println("Name = " + cbd.getName());
+//            System.out.println("Code = " + cbd.getCode());
+//            System.out.println("getItemCode = " + cbd.getItemCode());
             ts.add(cbd);
 //            System.out.println("ts = " + ts.size());
 

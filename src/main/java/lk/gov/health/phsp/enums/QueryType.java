@@ -37,4 +37,5 @@ public enum QueryType {
     Client_Count,
     Encounter_Count,
     Formset_Count,
+    Excel_Report,
 }
