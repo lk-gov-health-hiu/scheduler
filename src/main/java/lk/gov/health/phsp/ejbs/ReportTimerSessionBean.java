@@ -29,7 +29,10 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -106,7 +109,7 @@ public class ReportTimerSessionBean {
     @TransactionAttribute(REQUIRES_NEW)
     public void runReports() {
         queryComponents = null;
-        System.out.println("Running Reports = " + new Date());
+        System.out.println("Going to run Stored Reports at " + currentTimeAsString() + ".");
         if (!processingReport) {
             submitToConsilidate();
         }
@@ -126,8 +129,9 @@ public class ReportTimerSessionBean {
             persistent = false)
     @TransactionAttribute(REQUIRES_NEW)
     public void runIndividualQuerys() {
-        System.out.println("runIndividualQuerys at " + new Date());
+        System.out.println("Going to run individual queries at " + currentTimeAsString() + ".");
         int singleProcessCount = 10000;
+//        System.out.println("Maximum number of individual queries possible at a time is " + singleProcessCount);
         List<IndividualQueryResult> cqrs;
         String j;
         j = "select r "
@@ -136,6 +140,13 @@ public class ReportTimerSessionBean {
                 + " order by r.id "
                 + " ";
         cqrs = getIndividualQueryResultFacade().findByJpql(j, singleProcessCount);
+
+        if (cqrs == null) {
+            System.out.println("No individual queries left to process.");
+            return;
+        }
+
+        System.out.println("Number of individual queries processing this time is " + cqrs.size());
         for (IndividualQueryResult r : cqrs) {
             calculateIndividualQueryResult(r);
         }
@@ -149,8 +160,8 @@ public class ReportTimerSessionBean {
             persistent = false)
     @TransactionAttribute(REQUIRES_NEW)
     public void createIndividualResultsForConsolidatedResults() {
-//        System.out.println("createIndividualResultsForConsolidatedResults at " + new Date());
-        int singleProcessCount = 2000;
+        System.out.println("Going to create individual queries at " + currentTimeAsString());
+        int singleProcessCount = 10;
         List<ConsolidatedQueryResult> cqrs;
         String j;
         j = "select r "
@@ -160,6 +171,12 @@ public class ReportTimerSessionBean {
                 + " ";
         cqrs = getConsolidatedQueryResultFacade().findByJpql(j, singleProcessCount);
 
+        if (cqrs == null) {
+            System.out.println("No consolidated queries to create individual queries.");
+            return;
+        }
+
+        System.out.println("Number of Consolidated queries to create individual queries is " + cqrs.size());
         for (ConsolidatedQueryResult r : cqrs) {
             Long lastIndividualQueryResultId = 0l;
             List<Long> encIds = findEncounterIds(r.getResultFrom(), r.getResultTo(), r.getInstitution());
@@ -182,8 +199,8 @@ public class ReportTimerSessionBean {
             persistent = false)
     @TransactionAttribute(REQUIRES_NEW)
     public void createConsolidatedResultsFromIndividualResults() {
-//        System.out.println("createConsolidatedResultsFromIndividualResults at " + new Date());
-        int singleProcessCount = 2000;
+        System.out.println("Creating consolidated results from individual queries at " + new Date());
+        int singleProcessCount = 10;
         List<ConsolidatedQueryResult> cqrs;
         String j;
         j = "select r "
@@ -192,7 +209,14 @@ public class ReportTimerSessionBean {
                 + " order by r.id "
                 + " ";
         cqrs = getConsolidatedQueryResultFacade().findByJpql(j, singleProcessCount);
+
+        if (cqrs == null) {
+            System.out.println("No consolidated queries to get results from individual queries.");
+            return;
+        }
+
         Map m;
+        System.out.println("Number of consolidated queries to get results from individual queries this time is " + cqrs.size());
         for (ConsolidatedQueryResult r : cqrs) {
             m = new HashMap();
             m.put("id", r.getLastIndividualQueryResultId());
@@ -240,8 +264,7 @@ public class ReportTimerSessionBean {
     }
 
     private void submitToConsilidate() {
-//        System.out.println("submit To Consilidate");
-        int processingCount = 20;
+        int processingCount = 5;
         processingReport = true;
         String j;
         Map m = new HashMap();
@@ -254,10 +277,14 @@ public class ReportTimerSessionBean {
                 + " and q.processStarted=false "
                 + " order by q.id";
         List<StoredQueryResult> qs = getStoreQueryResultFacade().findByJpql(j, processingCount);
+
         if (qs == null) {
             processingReport = false;
+            System.out.println("No Stored Queries to submit to consolide.");
             return;
         }
+
+        System.out.println("Number of Stored Queries to submit to consolide is " + qs.size());
 
         for (StoredQueryResult q : qs) {
             q.setProcessStarted(true);
@@ -282,8 +309,7 @@ public class ReportTimerSessionBean {
     }
 
     private void checkCompletenessAfterConsolidation() {
-//        System.out.println("checkCompletenessAfterConsolidation");
-        int processingCount = 20;
+        int processingCount = 5;
         processingReport = true;
         String j;
         Map m = new HashMap();
@@ -295,9 +321,12 @@ public class ReportTimerSessionBean {
                 + " order by q.id";
         List<StoredQueryResult> qs = getStoreQueryResultFacade().findByJpql(j, processingCount);
         if (qs == null) {
+            System.out.println("No stored queries to check for completeness.");
             processingReport = false;
             return;
         }
+
+        System.out.println("Number of stored queries to check for completeness is " + qs.size());
 
         for (StoredQueryResult q : qs) {
             q.setProcessStarted(true);
@@ -321,8 +350,7 @@ public class ReportTimerSessionBean {
     }
 
     private void generateFileAfterConsolidation() {
-//        System.out.println("generateFileAfterConsolidation");
-        int processCount = 20;
+        int processCount = 5;
         processingReport = true;
         String j;
         Map m = new HashMap();
@@ -336,8 +364,11 @@ public class ReportTimerSessionBean {
         List<StoredQueryResult> qs = getStoreQueryResultFacade().findByJpql(j, processCount);
         if (qs == null) {
             processingReport = false;
+            System.out.println("No Stored Queries to generate files.");
             return;
         }
+
+        System.out.println("Number of Stored Queries to generate files is " + qs.size());
 
         for (StoredQueryResult q : qs) {
             q.setProcessStarted(true);
@@ -788,7 +819,6 @@ public class ReportTimerSessionBean {
             }
         }
 
-       
         return success;
 
     }
@@ -1116,6 +1146,7 @@ public class ReportTimerSessionBean {
         Long lng2 = null;
         Item itemVariable = null;
         Item itemValue = null;
+        Boolean qBool = null;
 
         if (q.getMatchType() == QueryCriteriaMatchType.Variable_Value_Check) {
             switch (q.getQueryDataType()) {
@@ -1144,22 +1175,45 @@ public class ReportTimerSessionBean {
                     lng1 = q.getLongNumberValue();
                     lng2 = q.getLongNumberValue2();
                     break;
+                case Boolean:
+                    qBool = q.getBooleanValue();
+                    break;
 
             }
             switch (q.getEvaluationType()) {
                 case Equal:
-//                    System.out.println("Equal");
-
                     if (qInt1 != null) {
-                        m = qInt1.equals(clientValue.getIntegerNumberValue());
+                        Integer tmpIntVal = clientValue.getIntegerNumberValue();
+                        if (tmpIntVal == null) {
+                            tmpIntVal = stringToInteger(clientValue.getShortTextValue());
+                        }
+                        if (tmpIntVal != null) {
+                            m = qInt1.equals(tmpIntVal);
+                        }
                     }
                     if (lng1 != null) {
-                        m = lng1.equals(clientValue.getLongNumberValue());
+                        Long tmpLLongVal = clientValue.getLongNumberValue();
+                        if (tmpLLongVal == null) {
+                            tmpLLongVal = stringToLong(clientValue.getShortTextValue());
+                        }
+                        if (tmpLLongVal != null) {
+                            m = lng1.equals(tmpLLongVal);
+                        }
                     }
                     if (real1 != null) {
-                        m = real1.equals(clientValue.getRealNumberValue());
+                        Double tmpDbl = clientValue.getRealNumberValue();
+                        if (tmpDbl == null) {
+                            tmpDbl = stringToDouble(clientValue.getShortTextValue());
+                        }
+                        if (tmpDbl != null) {
+                            m = real1.equals(tmpDbl);
+                        }
                     }
-
+                    if (qBool != null) {
+                        if (clientValue.getBooleanValue() != null) {
+                            m = qBool.equals(clientValue.getBooleanValue());
+                        }
+                    }
                     if (itemValue != null && itemVariable != null) {
                         if (clientValue != null
                                 && itemValue.getCode() != null
@@ -1172,84 +1226,238 @@ public class ReportTimerSessionBean {
                     }
                     break;
                 case Less_than:
-//                    System.out.println("Less than");
-//                    System.out.println("Client Value = " + clientValue.getIntegerNumberValue());
-                    if (qInt1 != null && clientValue.getIntegerNumberValue() != null) {
-                        m = clientValue.getIntegerNumberValue() < qInt1;
+                    if (qInt1 != null) {
+                        Integer tmpIntVal = clientValue.getIntegerNumberValue();
+                        if (tmpIntVal == null) {
+                            tmpIntVal = stringToInteger(clientValue.getShortTextValue());
+                        }
+                        if (tmpIntVal != null) {
+                            m = tmpIntVal < qInt1;
+                        }
                     }
-                    if (lng1 != null && clientValue.getLongNumberValue() != null) {
-                        m = clientValue.getLongNumberValue() < lng1;
+                    if (lng1 != null) {
+                        Long tmpLong = clientValue.getLongNumberValue();
+                        if (tmpLong == null) {
+                            tmpLong = stringToLong(clientValue.getShortTextValue());
+                        }
+                        if (tmpLong != null) {
+                            m = tmpLong < lng1;
+                        }
                     }
-                    if (real1 != null && clientValue.getRealNumberValue() != null) {
-                        m = clientValue.getRealNumberValue() < real1;
+                    if (real1 != null) {
+                        Double tmpDbl = clientValue.getRealNumberValue();
+                        if (tmpDbl == null) {
+                            tmpDbl = stringToDouble(clientValue.getShortTextValue());
+                        }
+                        if (tmpDbl != null) {
+                            m = tmpDbl < real1;
+                        }
                     }
-//                    System.out.println("Included = " + m);
                     break;
                 case Between:
-//                    System.out.println("Between");
-//                    System.out.println("Client Value = " + clientValue.getIntegerNumberValue());
-                    if (qInt1 != null && qInt2 != null && clientValue.getIntegerNumberValue() != null) {
+                    if (qInt1 != null && qInt2 != null) {
                         if (qInt1 > qInt2) {
                             Integer intTem = qInt1;
                             qInt1 = qInt2;
                             qInt2 = intTem;
                         }
-                        if (clientValue.getIntegerNumberValue() > qInt1 && clientValue.getIntegerNumberValue() < qInt2) {
-                            m = true;
+
+                        Integer tmpInt = clientValue.getIntegerNumberValue();
+                        if (tmpInt == null) {
+                            tmpInt = stringToInteger(clientValue.getShortTextValue());
                         }
+                        if (tmpInt != null) {
+                            if (tmpInt > qInt1 && tmpInt < qInt2) {
+                                m = true;
+                            }
+                        }
+
                     }
-                    if (lng1 != null && lng2 != null && clientValue.getLongNumberValue() != null) {
+                    if (lng1 != null && lng2 != null) {
                         if (lng1 > lng2) {
                             Long intTem = lng1;
                             intTem = lng1;
                             lng1 = lng2;
                             lng2 = intTem;
                         }
-                        if (clientValue.getLongNumberValue() > lng1 && clientValue.getLongNumberValue() < lng2) {
-                            m = true;
+
+                        Long tmpLong = clientValue.getLongNumberValue();
+                        if (tmpLong == null) {
+                            tmpLong = stringToLong(clientValue.getShortTextValue());
+                        }
+                        if (tmpLong != null) {
+                            if (tmpLong > lng1 && tmpLong < lng2) {
+                                m = true;
+                            }
                         }
                     }
-                    if (real1 != null && real2 != null && clientValue.getRealNumberValue() != null) {
+                    if (real1 != null && real2 != null) {
                         if (real1 > real2) {
                             Double realTem = real1;
                             realTem = real1;
                             real1 = real2;
                             real2 = realTem;
                         }
-                        if (clientValue.getRealNumberValue() > real1 && clientValue.getRealNumberValue() < real2) {
-                            m = true;
+
+                        Double tmpDbl = clientValue.getRealNumberValue();
+                        if (tmpDbl == null) {
+                            tmpDbl = stringToDouble(clientValue.getShortTextValue());
+                        }
+                        if (tmpDbl != null) {
+                            if (tmpDbl > real1 && tmpDbl < real2) {
+                                m = true;
+                            }
                         }
                     }
                     break;
                 case Grater_than:
-//                    System.out.println("Grater than");
-//                    System.out.println("Client Value = " + clientValue.getIntegerNumberValue());
-                    if (qInt1 != null && clientValue.getIntegerNumberValue() != null) {
-                        m = clientValue.getIntegerNumberValue() > qInt1;
+                    if (qInt1 != null) {
+                        Integer tmpInt = clientValue.getIntegerNumberValue();
+                        if (tmpInt == null) {
+                            tmpInt = stringToInteger(clientValue.getShortTextValue());
+                        }
+                        if (tmpInt != null) {
+                            m = tmpInt > qInt1;
+                        }
                     }
-                    if (real1 != null && clientValue.getRealNumberValue() != null) {
-                        m = clientValue.getRealNumberValue() > real1;
+                    if (real1 != null) {
+                        Double tmpDbl = clientValue.getRealNumberValue();
+                        if (tmpDbl == null) {
+                            tmpDbl = stringToDouble(clientValue.getShortTextValue());
+                        }
+                        if (tmpDbl != null) {
+                            m = tmpDbl > real1;
+                        }
+                    }
+                    if (lng1 != null) {
+                        Long tmpLng = clientValue.getLongNumberValue();
+                        if (tmpLng == null) {
+                            tmpLng = stringToLong(clientValue.getShortTextValue());
+                        }
+                        if (tmpLng != null) {
+                            m = tmpLng > lng1;
+                        }
                     }
                     break;
                 case Grater_than_or_equal:
-                    if (qInt1 != null && clientValue.getIntegerNumberValue() != null) {
-                        m = clientValue.getIntegerNumberValue() < qInt1;
+                    if (qInt1 != null) {
+                        Integer tmpInt = clientValue.getIntegerNumberValue();
+                        if (tmpInt == null) {
+                            tmpInt = stringToInteger(clientValue.getShortTextValue());
+                        }
+                        if (tmpInt != null) {
+                            m = tmpInt >= qInt1;
+                        }
                     }
-                    if (real1 != null && clientValue.getRealNumberValue() != null) {
-                        m = clientValue.getRealNumberValue() < real1;
+                    if (real1 != null) {
+                        Double temDbl = clientValue.getRealNumberValue();
+                        if (temDbl == null) {
+                            temDbl = stringToDouble(clientValue.getShortTextValue());
+                        }
+                        if (temDbl != null) {
+                            m = temDbl >= real1;
+                        }
+
+                    }
+                    if (lng1 != null) {
+                        Long tmpLng = clientValue.getLongNumberValue();
+                        if (tmpLng == null) {
+                            tmpLng = stringToLong(clientValue.getShortTextValue());
+                        }
+                        if (tmpLng != null) {
+                            m = tmpLng >= lng1;
+                        }
                     }
                 case Less_than_or_equal:
-                    if (qInt1 != null && clientValue.getIntegerNumberValue() != null) {
-                        m = clientValue.getIntegerNumberValue() >= qInt1;
+                    if (qInt1 != null) {
+                        Integer tmpInt = clientValue.getIntegerNumberValue();
+                        if (tmpInt == null) {
+                            tmpInt = stringToInteger(clientValue.getShortTextValue());
+                        }
+                        if (tmpInt != null) {
+                            m = tmpInt <= qInt1;
+                        }
                     }
-                    if (real1 != null && clientValue.getRealNumberValue() != null) {
-                        m = clientValue.getRealNumberValue() >= real1;
+                    if (real1 != null) {
+                        Double tmpDbl = clientValue.getRealNumberValue();
+                        if (tmpDbl == null) {
+                            tmpDbl = stringToDouble(clientValue.getShortTextValue());
+                        }
+                        if (tmpDbl != null) {
+                            m = tmpDbl <= real1;
+                        }
+                    }
+                    if (lng1 != null) {
+                        Long tmpLng = clientValue.getLongNumberValue();
+                        if (tmpLng == null) {
+                            tmpLng = stringToLong(clientValue.getShortTextValue());
+                        }
+                        if (tmpLng != null) {
+                            m = tmpLng <= lng1;
+                        }
                     }
                     break;
             }
         }
-//        System.out.println("Included= " + m);
         return m;
+    }
+
+    private String removeNonNumericCharactors(String str) {
+        return str.replaceAll("[^\\d.]", "");
+    }
+
+    public String currentTimeAsString() {
+        Date date = Calendar.getInstance().getTime();
+        DateFormat dateFormat = new SimpleDateFormat("hh:mm:ss");
+        String strDate = dateFormat.format(date);
+        return strDate;
+    }
+
+    private Integer stringToInteger(String str) {
+        Integer outInt;
+        if (str == null) {
+            outInt = null;
+            return outInt;
+        }
+        str = removeNonNumericCharactors(str);
+
+        try {
+            outInt = Integer.parseInt(str);
+        } catch (NumberFormatException e) {
+            outInt = null;
+        }
+        return outInt;
+    }
+
+    private Long stringToLong(String str) {
+        Long outLong;
+        if (str == null) {
+            outLong = null;
+            return outLong;
+        }
+        str = removeNonNumericCharactors(str);
+        try {
+            outLong = Long.parseLong(str);
+        } catch (NumberFormatException e) {
+            outLong = null;
+        }
+        return outLong;
+    }
+
+    private Double stringToDouble(String str) {
+        Double outDbl;
+        if (str == null) {
+            outDbl = null;
+            return outDbl;
+        }
+        str = removeNonNumericCharactors(str);
+
+        try {
+            outDbl = Double.parseDouble(str);
+        } catch (NumberFormatException e) {
+            outDbl = null;
+        }
+        return outDbl;
     }
 
     public List<ClientEncounterComponentBasicDataToQuery> findClientEncounterComponentItemsAlt(Long endId) {
