@@ -32,7 +32,6 @@ import lk.gov.health.phsp.entity.Upload;
 import lk.gov.health.phsp.enums.EncounterType;
 import lk.gov.health.phsp.enums.QueryCriteriaMatchType;
 import lk.gov.health.phsp.enums.QueryLevel;
-import lk.gov.health.phsp.enums.QueryType;
 import lk.gov.health.phsp.entity.StoredQueryResult;
 import lk.gov.health.phsp.facade.ClientEncounterComponentItemFacade;
 import lk.gov.health.phsp.facade.ConsolidatedQueryResultFacade;
@@ -41,7 +40,6 @@ import lk.gov.health.phsp.facade.IndividualQueryResultFacade;
 import lk.gov.health.phsp.facade.QueryComponentFacade;
 import lk.gov.health.phsp.facade.StoredQueryResultFacade;
 import lk.gov.health.phsp.facade.UploadFacade;
-import lk.gov.health.phsp.pojcs.EncounterWithComponents;
 import lk.gov.health.phsp.pojcs.ReportTimePeriod;
 import org.apache.commons.io.FileUtils;
 import org.apache.poi.ss.usermodel.Cell;
@@ -59,10 +57,7 @@ import org.apache.commons.io.IOUtils;
 @Stateless
 public class ReportTimerSessionBean {
 
-    private boolean processingReport = false;
-
     boolean logActivity = true;
-
     @EJB
     private StoredQueryResultFacade storeQueryResultFacade;
     @EJB
@@ -88,29 +83,18 @@ public class ReportTimerSessionBean {
     @TransactionAttribute(REQUIRES_NEW)
     public void runReports() {
         queryComponents = null;
-
         if (logActivity) {
-            System.out.println("Going to run Stored Reports at " + currentTimeAsString() + ".");
+            System.out.println("Going to run reports at " + currentTimeAsString() + ".");
         }
-        if (!processingReport) {
-            submitToConsilidate();
-        }
-        if (!processingReport) {
-            checkCompletenessAfterConsolidation();
-        }
-        if (!processingReport) {
-            generateFileAfterConsolidation();
-        }
-
+        submitToConsilidate();
+        checkCompletenessAfterConsolidation();
+        generateFileAfterConsolidation();
+        createConsolidatedResultsFromIndividualResults();
+        createIndividualResultsForConsolidatedResults();
+        runIndividualQuerys();
     }
 
-    @Schedule(
-            hour = "*",
-            minute = "*",
-            second = "16",
-            persistent = false)
-    @TransactionAttribute(REQUIRES_NEW)
-    public void runIndividualQuerys() {
+    private void runIndividualQuerys() {
         if (logActivity) {
             System.out.println("Going to run individual queries at " + currentTimeAsString() + ".");
         }
@@ -140,13 +124,7 @@ public class ReportTimerSessionBean {
 
     }
 
-    @Schedule(
-            hour = "*",
-            minute = "*",
-            second = "31",
-            persistent = false)
-    @TransactionAttribute(REQUIRES_NEW)
-    public void createIndividualResultsForConsolidatedResults() {
+    private void createIndividualResultsForConsolidatedResults() {
         if (logActivity) {
             System.out.println("Going to create individual queries at " + currentTimeAsString());
         }
@@ -212,13 +190,7 @@ public class ReportTimerSessionBean {
 
     }
 
-    @Schedule(
-            hour = "*",
-            minute = "*",
-            second = "46",
-            persistent = false)
-    @TransactionAttribute(REQUIRES_NEW)
-    public void createConsolidatedResultsFromIndividualResults() {
+    private void createConsolidatedResultsFromIndividualResults() {
         if (logActivity) {
             System.out.println("Creating consolidated results from individual queries at " + currentTimeAsString());
         }
@@ -279,7 +251,7 @@ public class ReportTimerSessionBean {
         }
     }
 
-    public void consolideIndividualResults(ConsolidatedQueryResult cr, List<Long> encIds) {
+    private void consolideIndividualResults(ConsolidatedQueryResult cr, List<Long> encIds) {
 //        if(logActivity) System.out.println("consolideIndividualResults");
         String j;
         Map m;
@@ -309,7 +281,6 @@ public class ReportTimerSessionBean {
 
     private void submitToConsilidate() {
         int processingCount = 5;
-        processingReport = true;
         String j;
         Map m = new HashMap();
         j = "select q from StoredQueryResult q "
@@ -323,7 +294,6 @@ public class ReportTimerSessionBean {
         List<StoredQueryResult> qs = getStoreQueryResultFacade().findByJpql(j, processingCount);
 
         if (qs == null) {
-            processingReport = false;
             if (logActivity) {
                 System.out.println("No Stored Queries to submit to consolide.");
             }
@@ -352,13 +322,12 @@ public class ReportTimerSessionBean {
                 getStoreQueryResultFacade().edit(q);
             }
         }
-        processingReport = false;
 
     }
 
     private void checkCompletenessAfterConsolidation() {
         int processingCount = 5;
-        processingReport = true;
+
         String j;
         Map m = new HashMap();
         j = "select q from StoredQueryResult q "
@@ -372,7 +341,7 @@ public class ReportTimerSessionBean {
             if (logActivity) {
                 System.out.println("No stored queries to check for completeness.");
             }
-            processingReport = false;
+
             return;
         }
 
@@ -397,13 +366,12 @@ public class ReportTimerSessionBean {
                 getStoreQueryResultFacade().edit(q);
             }
         }
-        processingReport = false;
 
     }
 
     private void generateFileAfterConsolidation() {
         int processCount = 5;
-        processingReport = true;
+
         String j;
         Map m = new HashMap();
         j = "select q from StoredQueryResult q "
@@ -415,7 +383,7 @@ public class ReportTimerSessionBean {
                 + " order by q.id";
         List<StoredQueryResult> qs = getStoreQueryResultFacade().findByJpql(j, processCount);
         if (qs == null) {
-            processingReport = false;
+
             if (logActivity) {
                 System.out.println("No Stored Queries to generate files.");
             }
@@ -444,7 +412,6 @@ public class ReportTimerSessionBean {
                 getStoreQueryResultFacade().edit(q);
             }
         }
-        processingReport = false;
 
     }
 
@@ -573,7 +540,7 @@ public class ReportTimerSessionBean {
 
     }
 
-    public void createConsolidatedQueryResult(StoredQueryResult sqr, QueryComponent qc) {
+    private void createConsolidatedQueryResult(StoredQueryResult sqr, QueryComponent qc) {
         String j;
         Map m = new HashMap();
         j = "select r "
@@ -608,7 +575,7 @@ public class ReportTimerSessionBean {
 
     }
 
-    public boolean checkConsolidatedQueryResult(StoredQueryResult sqr, QueryComponent qc) {
+    private boolean checkConsolidatedQueryResult(StoredQueryResult sqr, QueryComponent qc) {
         String j;
         Map m = new HashMap();
         j = "select r "
@@ -643,7 +610,7 @@ public class ReportTimerSessionBean {
         return resultFound;
     }
 
-    public Long findConsolidatedQueryResult(StoredQueryResult sqr, QueryComponent qc) {
+    private Long findConsolidatedQueryResult(StoredQueryResult sqr, QueryComponent qc) {
         String j;
         Map m = new HashMap();
         j = "select r "
@@ -674,7 +641,7 @@ public class ReportTimerSessionBean {
         return r.getLongValue();
     }
 
-    public Long createIndividualQueryResultsForConsolidateQueryResult(Long encounterId,
+    private Long createIndividualQueryResultsForConsolidateQueryResult(Long encounterId,
             String qryCode,
             Long queryId) {
         if (qryCode == null) {
@@ -706,14 +673,20 @@ public class ReportTimerSessionBean {
         return r.getId();
     }
 
-    public void calculateIndividualQueryResult(IndividualQueryResult r) {
-        List<ClientEncounterComponentBasicDataToQuery> encomps
-                = findClientEncounterComponentItems(r.getEncounterId(), r.getQueryComponentId());
-
+    private void calculateIndividualQueryResult(IndividualQueryResult r) {
+        if (logActivity) {
+            System.out.println("Calculating Individual Query Results for Query " + r.getQueryComponentCode()
+                    + " and Encounter " + r.getEncounterId());
+        }
         List<QueryComponent> criteria = findCriteriaForQueryComponent(r.getQueryComponentCode());
+        if (logActivity) {
+            System.out.println("criteria = " + criteria);
+        }
         if (criteria == null || criteria.isEmpty()) {
             r.setIncluded(true);
         } else {
+            List<ClientEncounterComponentBasicDataToQuery> encomps
+                    = findClientEncounterComponentItems(r.getEncounterId(), criteria);
             r.setIncluded(findMatch(encomps, criteria));
         }
         getIndividualQueryResultFacade().edit(r);
@@ -730,8 +703,7 @@ public class ReportTimerSessionBean {
 //        }
 //        getIndividualQueryResultFacade().edit(r);
 //    }
-
-    private Boolean findMatch(List<ClientEncounterComponentBasicDataToQuery> is, List<QueryComponent> qrys) {
+    private boolean findMatch(List<ClientEncounterComponentBasicDataToQuery> is, List<QueryComponent> qrys) {
         boolean suitableForInclusion = true;
         for (QueryComponent q : qrys) {
 
@@ -759,10 +731,10 @@ public class ReportTimerSessionBean {
             if (!componentFound) {
                 if (logActivity) {
                     System.out.println("Client component Item NOT found for " + q.getItem().getCode());
-                    for(ClientEncounterComponentBasicDataToQuery ci: is){
+                    for (ClientEncounterComponentBasicDataToQuery ci : is) {
                         System.out.println("Client Component Item Item Code = " + ci.getItemCode());
                     }
-                    for(QueryComponent qc: qrys){
+                    for (QueryComponent qc : qrys) {
                         System.out.println("qc Item Code " + qc.getItem().getCode());
                     }
                 }
@@ -1147,7 +1119,6 @@ public class ReportTimerSessionBean {
 //        return l;
 //
 //    }
-
     private List<Long> findEncounterIds(Date fromDate, Date toDate, Institution institution) {
         String j = "select e.id "
                 + " from  ClientEncounterComponentFormSet f join f.encounter e"
@@ -1216,7 +1187,6 @@ public class ReportTimerSessionBean {
 //        }
 //        return c;
 //    }
-
     private boolean matchQuery(QueryComponent q, ClientEncounterComponentBasicDataToQuery clientValue) {
         if (clientValue == null) {
             return false;
@@ -1540,7 +1510,7 @@ public class ReportTimerSessionBean {
         return str.replaceAll("[^\\d.]", "");
     }
 
-    public String currentTimeAsString() {
+    private String currentTimeAsString() {
         Date date = Calendar.getInstance().getTime();
         DateFormat dateFormat = new SimpleDateFormat("hh:mm:ss");
         String strDate = dateFormat.format(date);
@@ -1594,18 +1564,20 @@ public class ReportTimerSessionBean {
         return outDbl;
     }
 
-    public List<ClientEncounterComponentBasicDataToQuery> findClientEncounterComponentItems(Long endId, Long queryId) {
+    private List<ClientEncounterComponentBasicDataToQuery> findClientEncounterComponentItems(Long endId, List<QueryComponent> qrys) {
+        if (logActivity) {
+            System.out.println("Finding ENcounter Component Items for Querying");
+        }
+
         String j;
+        Map m;
 
-        Map m = new HashMap();
-
-        j = "select q.item.code from QueryComponent q "
-                + " where q.queryLevel=:ql "
-                + " and q.parentComponent.id=:qid";
-        m.put("ql", QueryLevel.Criterian);
-        m.put("qid", queryId);
-
-        List<String> tqs = getQueryComponentFacade().findString(j, m);
+        List<String> tqs = new ArrayList();
+        for (QueryComponent qc : qrys) {
+            if (qc.getItem().getCode() != null) {
+                tqs.add(qc.getItem().getCode().trim().toLowerCase());
+            }
+        }
 
         m = new HashMap();
         j = "select f from ClientEncounterComponentItem f "
@@ -1613,14 +1585,16 @@ public class ReportTimerSessionBean {
                 + " and f.encounter.id=:eid ";
         m.put("eid", endId);
 //        System.out.println("tqs = " + tqs);
-        if (tqs != null && !tqs.isEmpty()) {
+        if (!tqs.isEmpty()) {
 //            System.out.println("tqs.size() = " + tqs.size());
             if (tqs.size() < 20) {
-                j += " and f.item.code in :ics";
+                j += " and lower(f.item.code) in :ics";
                 m.put("ics", tqs);
             }
-        }else{
-            if(logActivity) System.out.println("tqs = " + tqs);
+        } else {
+            if (logActivity) {
+                System.out.println("tqs = " + tqs);
+            }
         }
 
 //        System.out.println("m = " + m);
@@ -1719,7 +1693,134 @@ public class ReportTimerSessionBean {
         return ts;
     }
 
-    public List<QueryComponent> findCriteriaForQueryComponent(QueryComponent p) {
+    private List<ClientEncounterComponentBasicDataToQuery> findClientEncounterComponentItems(Long endId, Long queryId) {
+        String j;
+
+        Map m = new HashMap();
+
+        j = "select q.item.code from QueryComponent q "
+                + " where q.queryLevel=:ql "
+                + " and q.parentComponent.id=:qid";
+        m.put("ql", QueryLevel.Criterian);
+        m.put("qid", queryId);
+
+        List<String> tqs = getQueryComponentFacade().findString(j, m);
+
+        m = new HashMap();
+        j = "select f from ClientEncounterComponentItem f "
+                + " where f.retired=false "
+                + " and f.encounter.id=:eid ";
+        m.put("eid", endId);
+//        System.out.println("tqs = " + tqs);
+        if (tqs != null && !tqs.isEmpty()) {
+//            System.out.println("tqs.size() = " + tqs.size());
+            if (tqs.size() < 20) {
+                j += " and f.item.code in :ics";
+                m.put("ics", tqs);
+            }
+        } else {
+            if (logActivity) {
+                System.out.println("tqs = " + tqs);
+            }
+        }
+
+//        System.out.println("m = " + m);
+//        System.out.println("j = " + j);
+        List<ClientEncounterComponentItem> t = getClientEncounterComponentItemFacade().findByJpql(j, m);
+        if (t == null) {
+            t = new ArrayList<>();
+        }
+
+//        j = "select new lk.gov.health.phsp.pojcs.ClientEncounterComponentBasicDataToQuery("
+//                + "f.name, "
+//                + "f.code, "
+//                + "f.item.code, "
+//                + "f.shortTextValue, "
+//                + "f.integerNumberValue, "
+//                + "f.longNumberValue, "
+//                + "f.realNumberValue, "
+//                + "f.booleanValue, "
+//                + "f.dateValue, "
+//                + "f.itemValue.code"
+//                + ") ";
+//
+//        j += " from ClientEncounterComponentItem f "
+//                + " where f.retired=false "
+//                + " and f.encounter.id=:eid";
+//        Map m = new HashMap();
+//        m.put("eid", endId);
+//
+//        List<Object> objs = getClientEncounterComponentItemFacade().findAggregates(j, m);
+//        if(logActivity) System.out.println("objs = " + objs.size());
+        List<ClientEncounterComponentBasicDataToQuery> ts = new ArrayList<>();
+        for (ClientEncounterComponentItem o : t) {
+            ClientEncounterComponentBasicDataToQuery cbd;
+            if (o.getItem() != null && o.getItemValue() != null) {
+                cbd
+                        = new ClientEncounterComponentBasicDataToQuery(
+                                o.getName(),
+                                o.getCode(),
+                                o.getItem().getCode(),
+                                o.getShortTextValue(),
+                                o.getIntegerNumberValue(),
+                                o.getLongNumberValue(),
+                                o.getRealNumberValue(),
+                                o.getBooleanValue(),
+                                o.getDateValue(),
+                                o.getItemValue().getCode()
+                        );
+            } else if (o.getItem() != null) {
+                cbd
+                        = new ClientEncounterComponentBasicDataToQuery(
+                                o.getName(),
+                                o.getCode(),
+                                o.getItem().getCode(),
+                                o.getShortTextValue(),
+                                o.getIntegerNumberValue(),
+                                o.getLongNumberValue(),
+                                o.getRealNumberValue(),
+                                o.getBooleanValue(),
+                                o.getDateValue()
+                        );
+
+            } else if (o.getItemValue() != null) {
+                cbd
+                        = new ClientEncounterComponentBasicDataToQuery(
+                                o.getName(),
+                                o.getCode(),
+                                o.getShortTextValue(),
+                                o.getIntegerNumberValue(),
+                                o.getLongNumberValue(),
+                                o.getRealNumberValue(),
+                                o.getBooleanValue(),
+                                o.getDateValue(),
+                                o.getItemValue().getCode()
+                        );
+            } else {
+                cbd
+                        = new ClientEncounterComponentBasicDataToQuery(
+                                o.getName(),
+                                o.getCode(),
+                                o.getShortTextValue(),
+                                o.getIntegerNumberValue(),
+                                o.getLongNumberValue(),
+                                o.getRealNumberValue(),
+                                o.getBooleanValue(),
+                                o.getDateValue()
+                        );
+            }
+
+//            if(logActivity) System.out.println("Name = " + cbd.getName());
+//            if(logActivity) System.out.println("Code = " + cbd.getCode());
+//            if(logActivity) System.out.println("getItemCode = " + cbd.getItemCode());
+            ts.add(cbd);
+//            if(logActivity) System.out.println("ts = " + ts.size());
+
+        }
+        return ts;
+    }
+
+    private List<QueryComponent> findCriteriaForQueryComponent(QueryComponent p) {
         if (p == null) {
             return null;
         }
@@ -1741,7 +1842,7 @@ public class ReportTimerSessionBean {
         return output;
     }
 
-    public List<QueryComponent> findCriteriaForQueryComponent(String qryCode) {
+    private List<QueryComponent> findCriteriaForQueryComponent(String qryCode) {
         if (qryCode == null) {
             return null;
         }
@@ -1770,31 +1871,23 @@ public class ReportTimerSessionBean {
         return c;
     }
 
-    public StoredQueryResultFacade getStoreQueryResultFacade() {
+    private StoredQueryResultFacade getStoreQueryResultFacade() {
         return storeQueryResultFacade;
     }
 
-    public boolean isProcessingReport() {
-        return processingReport;
-    }
-
-    public void setProcessingReport(boolean processingReport) {
-        this.processingReport = processingReport;
-    }
-
-    public UploadFacade getUploadFacade() {
+    private UploadFacade getUploadFacade() {
         return uploadFacade;
     }
 
-    public EncounterFacade getEncounterFacade() {
+    private EncounterFacade getEncounterFacade() {
         return encounterFacade;
     }
 
-    public QueryComponentFacade getQueryComponentFacade() {
+    private QueryComponentFacade getQueryComponentFacade() {
         return queryComponentFacade;
     }
 
-    public ClientEncounterComponentItemFacade getClientEncounterComponentItemFacade() {
+    private ClientEncounterComponentItemFacade getClientEncounterComponentItemFacade() {
         return clientEncounterComponentItemFacade;
     }
 
@@ -1806,15 +1899,15 @@ public class ReportTimerSessionBean {
         return queryComponents;
     }
 
-    public void setQueryComponents(List<QueryComponent> queryComponents) {
+    private void setQueryComponents(List<QueryComponent> queryComponents) {
         this.queryComponents = queryComponents;
     }
 
-    public ConsolidatedQueryResultFacade getConsolidatedQueryResultFacade() {
+    private ConsolidatedQueryResultFacade getConsolidatedQueryResultFacade() {
         return consolidatedQueryResultFacade;
     }
 
-    public IndividualQueryResultFacade getIndividualQueryResultFacade() {
+    private IndividualQueryResultFacade getIndividualQueryResultFacade() {
         return individualQueryResultFacade;
     }
 
