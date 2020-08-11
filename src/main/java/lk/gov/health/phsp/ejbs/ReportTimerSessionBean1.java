@@ -64,7 +64,6 @@ public class ReportTimerSessionBean1 {
 //            second = "1",
 //            persistent = false)
     public void runReports() {
-        queryComponents = null;
         System.out.println("Going to run reports at " + currentTimeAsString() + ".");
         if (logActivity) {
             System.out.println("Going to run reports at " + currentTimeAsString() + ".");
@@ -81,7 +80,7 @@ public class ReportTimerSessionBean1 {
         if (logActivity) {
             System.out.println("Going to run individual queries at " + currentTimeAsString() + ".");
         }
-        int singleProcessCount = 1000;
+        int singleProcessCount = 500;
         List<IndividualQueryResult> cqrs;
         String j;
         j = "select r "
@@ -2072,7 +2071,7 @@ public class ReportTimerSessionBean1 {
     }
 
     private EntityManager getEntityManager() {
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 100; i++) {
         }
         return em;
     }

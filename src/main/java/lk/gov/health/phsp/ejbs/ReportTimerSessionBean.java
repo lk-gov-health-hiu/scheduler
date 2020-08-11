@@ -19,6 +19,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.ejb.EJB;
 import javax.ejb.Schedule;
+import javax.ejb.Singleton;
 import javax.ejb.Stateless;
 import lk.gov.health.phsp.entity.ClientEncounterComponentItem;
 import lk.gov.health.phsp.entity.ConsolidatedQueryResult;
@@ -52,7 +53,7 @@ import org.apache.commons.io.IOUtils;
  *
  * @author buddhika
  */
-@Stateless
+@Singleton
 public class ReportTimerSessionBean {
 
     boolean logActivity = true;
@@ -73,13 +74,12 @@ public class ReportTimerSessionBean {
 
     private List<QueryComponent> queryComponents;
 
-    @Schedule(
-            hour = "*",
-            minute = "*/3",
-            second = "0",
-            persistent = false)
+//    @Schedule(
+//            hour = "*",
+//            minute = "*/3",
+//            second = "0",
+//            persistent = false)
     public void runReports() {
-        queryComponents = null;
         if (logActivity) {
             System.out.println("Going to run reports at " + currentTimeAsString() + ".");
         }
@@ -117,7 +117,7 @@ public class ReportTimerSessionBean {
         }
         for (IndividualQueryResult r : cqrs) {
             calculateIndividualQueryResult(r);
-            for (int i = 0; i < 10000; i++) {
+            for (int i = 0; i < 1000; i++) {
                 if (i % 1000 == 1) {
                     System.out.print(".");
                 }
@@ -188,7 +188,7 @@ public class ReportTimerSessionBean {
             }
             r.setLastIndividualQueryResultId(lastIndividualQueryResultId);
             getConsolidatedQueryResultFacade().edit(r);
-            for (int i = 0; i < 10000; i++) {
+            for (int i = 0; i < 1000; i++) {
                 if (i % 1000 == 1) {
                     System.out.print(".");
                 }
@@ -253,13 +253,13 @@ public class ReportTimerSessionBean {
                     getConsolidatedQueryResultFacade().edit(r);
                     continue;
                 }
-                for (int i = 0; i < 10000; i++) {
+                for (int i = 0; i < 1000; i++) {
                     if (i % 1000 == 1) {
                         System.out.print(".");
                     }
                 }
                 consolideIndividualResults(r, encIds);
-                for (int i = 0; i < 10000; i++) {
+                for (int i = 0; i < 1000; i++) {
                     if (i % 1000 == 1) {
                         System.out.print(".");
                     }
@@ -687,7 +687,7 @@ public class ReportTimerSessionBean {
             r.setQueryComponentCode(qryCode.trim().toLowerCase());
             r.setQueryComponentId(queryId);
             getIndividualQueryResultFacade().create(r);
-            for (int i = 0; i < 10000; i++) {
+            for (int i = 0; i < 1000; i++) {
                 if (i % 1000 == 1) {
                     System.out.print(".");
                 }
@@ -703,7 +703,7 @@ public class ReportTimerSessionBean {
                     + " and Encounter " + r.getEncounterId());
         }
 
-        for (int i = 0; i < 10000; i++) {
+        for (int i = 0; i < 1000; i++) {
             if (i % 1000 == 1) {
                 System.out.print(".");
             }
@@ -711,7 +711,7 @@ public class ReportTimerSessionBean {
 
         List<QueryComponent> criteria = findCriteriaForQueryComponent(r.getQueryComponentCode());
 
-        for (int i = 0; i < 10000; i++) {
+        for (int i = 0; i < 1000; i++) {
             if (i % 1000 == 1) {
                 System.out.print(".");
             }
