@@ -1,3 +1,3 @@
-SELECT `name`, code
-from item
-WHERE `ID` = 15005;
+SELECT `name`, code, `RETIRED`
+from component
+WHERE `ID` = 533325;
