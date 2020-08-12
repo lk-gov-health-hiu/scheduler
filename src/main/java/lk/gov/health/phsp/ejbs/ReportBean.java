@@ -43,6 +43,7 @@ import java.util.regex.Pattern;
 import javax.ejb.EJB;
 import javax.ejb.Schedule;
 import javax.ejb.Singleton;
+import lk.gov.health.phsp.entity.ClientEncounterComponentItem;
 import lk.gov.health.phsp.entity.Institution;
 import lk.gov.health.phsp.entity.Item;
 import lk.gov.health.phsp.entity.QueryComponent;
@@ -75,7 +76,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 @Singleton
 public class ReportBean {
 
-    private boolean logActivity = true;
+    private final boolean logActivity = true;
     private List<EncounterWithComponents> encountersWithComponents;
     private List<QueryWithCriteria> queriesWithCriteria;
     StoredQueryResult storedQueryResult;
@@ -139,7 +140,7 @@ public class ReportBean {
 
     public List<EncounterWithComponents> findEncountersWithComponents(List<Long> ids) {
         if (logActivity) {
-            System.out.println("Finding Encounters and Components ");
+//            System.out.println("Finding Encounters and Components ");
         }
         if (ids == null) {
             if (logActivity) {
@@ -273,8 +274,14 @@ public class ReportBean {
                         if (qc != null) {
                             QueryWithCriteria qwc = new QueryWithCriteria();
                             qwc.setQuery(qc);
+                            System.out.println("qc = " + qc);
                             qwc.setCriteria(findCriteriaForQueryComponent(qc.getCode()));
+                            System.out.println("qwc.getCriteria() = " + qwc.getCriteria());
                             qs.add(qwc);
+                        } else {
+                            if (logActivity) {
+                                System.out.println("No qc found for " + cellString);
+                            }
                         }
                     }
                 }
@@ -378,11 +385,17 @@ public class ReportBean {
                         } else if (cellString.equals("#{report_period}")) {
                             currentCell.setCellValue(sqr.getPeriodString());
                         } else {
+                            System.out.println("cellString = " + cellString);
                             String qryCode = findQueryComponentCodeByCellString(cellString);
+                            System.out.println("qryCode = " + qryCode);
                             if (qryCode != null) {
                                 QueryWithCriteria qwc = findQwcFromQwcs(qwcs, qryCode);
                                 Long value = calculateIndividualQueryResult(ewcs, qwc);
+                                currentCell.setCellValue(value);
+                            }else{
+                                currentCell.setCellValue("");
                             }
+                            
                         }
                     }
 
@@ -456,47 +469,88 @@ public class ReportBean {
             return result;
         } else {
             for (EncounterWithComponents ewc : ewcs) {
-                if (findMatch(ewc.getComponents(), criteria)) {
+                if (findMatch(ewc.getComponents(), qwc)) {
                     result++;
                 }
             }
         }
+        System.out.println("result = " + result);
         return result;
     }
 
-    private boolean findMatch(List<ClientEncounterComponentBasicDataToQuery> is, List<QueryComponent> qrys) {
+    private boolean findMatch(List<ClientEncounterComponentItem> ccs, QueryWithCriteria qrys) {
+        System.out.println("Find Metch");
+        if (qrys == null) {
+            System.out.println("No Query with Components = " + qrys);
+            return false;
+        }
+        if (qrys.getQuery() == null) {
+            System.out.println("No Query for Query with Components = " + qrys.getQuery());
+            return false;
+        }
+        if (qrys.getQuery().getCode() == null) {
+            System.out.println("No Code for the Query for Query with Components = " + qrys.getQuery().getCode());
+            return false;
+        }
+        if (qrys.getQuery().getCode().trim().equals("")) {
+            System.out.println("Empty Code for the Query for Query with Components = " + qrys.getQuery().getCode());
+            return false;
+        }
+  
         boolean suitableForInclusion = true;
-        for (QueryComponent q : qrys) {
 
-            if (q.getItem() == null || q.getItem().getCode() == null) {
+        
+
+        for (QueryComponent qc : qrys.getCriteria()) {
+            if (qc.getItem() == null) {
+                if (logActivity) {
+                    System.out.println("No Item for Criteria for " + qc.getName());
+                }
                 continue;
-            } else {
-//                    if(logActivity) System.out.println("QUERY Item Code is NULL");
+            }
+            if (qc.getItem().getCode() == null) {
+                if (logActivity) {
+                    System.out.println("No Item code for Criteria for " + qc.getName());
+                }
+                continue;
             }
 
             boolean thisMatchOk = false;
             boolean componentFound = false;
-            for (ClientEncounterComponentBasicDataToQuery i : is) {
 
-                if (i.getItemCode() == null) {
+            for (ClientEncounterComponentItem cei : ccs) {
+
+                if (cei.getItem() == null) {
+                    if (logActivity) {
+                        System.out.println("No Item for Client Component");
+                    }
+                    continue;
+                }
+                if (cei.getItem().getCode() == null) {
+                    if (logActivity) {
+                        System.out.println("No Item for Client Component");
+                    }
                     continue;
                 }
 
-                if (i.getItemCode().trim().equalsIgnoreCase(q.getItem().getCode().trim())) {
+                System.out.println("cei.getItem().getCode() = " + cei.getItem().getCode());
+                System.out.println("qc.getItem().getCode() = " + qc.getItem().getCode());
+                
+                if (cei.getItem().getCode().trim().equalsIgnoreCase(qc.getItem().getCode().trim())) {
                     componentFound = true;
-                    if (matchQuery(q, i)) {
+                    if (matchQuery(qc, cei)) {
                         thisMatchOk = true;
                     }
                 }
             }
             if (!componentFound) {
                 if (logActivity) {
-                    System.out.println("Client component Item NOT found for " + q.getItem().getCode());
-                    for (ClientEncounterComponentBasicDataToQuery ci : is) {
-                        System.out.println("Client Component Item Item Code = " + ci.getItemCode());
+                    System.out.println("Client component Item NOT found for " + qc.getItem().getCode());
+                    for (ClientEncounterComponentItem ci : ccs) {
+                        System.out.println("Client Component Item Item Code = " + ci.getItem().getCode());
                     }
-                    for (QueryComponent qc : qrys) {
-                        System.out.println("qc Item Code " + qc.getItem().getCode());
+                    for (QueryComponent tqc : qrys.getCriteria()) {
+                        System.out.println("qc Item Code " + tqc.getItem().getCode());
                     }
                 }
             }
@@ -504,10 +558,12 @@ public class ReportBean {
                 suitableForInclusion = false;
             }
         }
+        System.out.println("suitableForInclusion = " + suitableForInclusion);
         return suitableForInclusion;
     }
 
-    private boolean matchQuery(QueryComponent q, ClientEncounterComponentBasicDataToQuery clientValue) {
+    private boolean matchQuery(QueryComponent q, ClientEncounterComponentItem clientValue) {
+        System.out.println("Match Query");
         if (clientValue == null) {
             return false;
         }
@@ -523,7 +579,7 @@ public class ReportBean {
         Boolean qBool = null;
 
         if (q.getMatchType() == QueryCriteriaMatchType.Variable_Value_Check) {
-//            if(logActivity) System.out.println("q.getQueryDataType() = " + q.getQueryDataType());
+            if(logActivity) System.out.println("q.getQueryDataType() = " + q.getQueryDataType());
             switch (q.getQueryDataType()) {
                 case integer:
 //                    if(logActivity) System.out.println("clientValue.getIntegerNumberValue() = " + clientValue.getIntegerNumberValue());
@@ -555,7 +611,7 @@ public class ReportBean {
                     break;
 
             }
-//            if(logActivity) System.out.println("q.getEvaluationType() = " + q.getEvaluationType());
+            if(logActivity) System.out.println("q.getEvaluationType() = " + q.getEvaluationType());
             switch (q.getEvaluationType()) {
 
                 case Not_null:
@@ -593,7 +649,7 @@ public class ReportBean {
                     }
                     if (itemValue != null && itemVariable != null) {
                         if (itemValue.getCode() != null) {
-                            if (clientValue.getItemValueCode() != null) {
+                            if (clientValue.getItemValue().getCode() != null) {
                                 m = true;
                             }
                         }
@@ -635,9 +691,9 @@ public class ReportBean {
                     }
                     if (itemValue != null && itemVariable != null) {
                         if (itemValue.getCode() != null
-                                && clientValue.getItemValueCode() != null) {
+                                && clientValue.getItemValue().getCode() != null) {
 
-                            if (itemValue.getCode().equals(clientValue.getItemValueCode())) {
+                            if (itemValue.getCode().equals(clientValue.getItemValue().getCode())) {
                                 m = true;
                             }
                         }
@@ -823,6 +879,7 @@ public class ReportBean {
                     break;
             }
         }
+        System.out.println("match is  = " + m);
         return m;
     }
 
@@ -851,37 +908,18 @@ public class ReportBean {
         return encs;
     }
 
-    private List<ClientEncounterComponentBasicDataToQuery> findClientEncounterComponentItems(Long endId) {
+    private List<ClientEncounterComponentItem> findClientEncounterComponentItems(Long endId) {
         if (logActivity) {
-            System.out.println("Finding ENcounter Component Items for Querying");
+//            System.out.println("Finding ENcounter Component Items for Querying");
         }
         String j;
         Map m;
         m = new HashMap();
-        j = "select new lk.gov.health.phsp.pojcs.ClientEncounterComponentBasicDataToQuery("
-                + "f.name, "
-                + "f.code, "
-                + "f.item.code, "
-                + "f.shortTextValue, "
-                + "f.integerNumberValue, "
-                + "f.longNumberValue, "
-                + "f.realNumberValue, "
-                + "f.booleanValue, "
-                + "f.dateValue, "
-                + "f.itemValue.code"
-                + ") ";
-        j += " from ClientEncounterComponentItem f "
+        j = "select f from ClientEncounterComponentItem f "
                 + " where f.retired=false "
                 + " and f.encounter.id=:eid";
         m.put("eid", endId);
-        List<Object> objs = getClientEncounterComponentItemFacade().findAggregates(j, m);
-        List<ClientEncounterComponentBasicDataToQuery> ts = new ArrayList<>();
-        for (Object o : objs) {
-            if (o instanceof ClientEncounterComponentBasicDataToQuery) {
-                ClientEncounterComponentBasicDataToQuery t = (ClientEncounterComponentBasicDataToQuery) o;
-                ts.add(t);
-            }
-        }
+        List<ClientEncounterComponentItem> ts = getClientEncounterComponentItemFacade().findByJpql(j, m);
         return ts;
     }
 
@@ -929,17 +967,20 @@ public class ReportBean {
     }
 
     private String findQueryComponentCodeByCellString(String text) {
+//        System.out.println("findQueryComponentCodeByCellString");
+//        System.out.println("text = " + text);
         String str = null;
         String patternStart = "#{";
         String patternEnd = "}";
         String regexString = Pattern.quote(patternStart) + "(.*?)" + Pattern.quote(patternEnd);
         Pattern p = Pattern.compile(regexString);
         Matcher m = p.matcher(text);
-        QueryComponent qc = null;
         while (m.find()) {
             String block = m.group(1);
             str = block;
+//            System.out.println("block = " + block);
         }
+//        System.out.println("str = " + str);
         return str;
     }
 
@@ -1083,10 +1124,14 @@ public class ReportBean {
     }
 
     private QueryWithCriteria findQwcFromQwcs(List<QueryWithCriteria> qwcs, String qryCode) {
+        System.out.println("findQwcFromQwcs");
+        System.out.println("qryCode = " + qryCode);
+
         QueryWithCriteria q = null;
+
         for (QueryWithCriteria tq : qwcs) {
             if (tq.getQuery() != null) {
-                if (tq.getQuery().getCode() == null) {
+                if (tq.getQuery().getCode() != null) {
                     if (qryCode.equalsIgnoreCase(tq.getQuery().getCode())) {
                         q = tq;
                     }
